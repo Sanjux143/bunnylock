@@ -3,9 +3,6 @@ name: Build bunnylock APK
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -24,10 +21,8 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          # Google ने पुराने 'tools' पैकेज को हटा दिया है, इसलिए डिफ़ॉल्ट इंस्टॉलेशन को अक्षम करें
           packages: '' 
 
-      # सभी Android SDK लाइसेंस को स्वतः स्वीकार करने के लिए
       - name: Accept Android SDK licenses
         run: |
           yes | sdkmanager --licenses || true
@@ -39,15 +34,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      # 1. टेक्स्ट फाइल से .jks फाइल वापस बनाना
+      - name: Decode Keystore
+        run: |
+          base64 -d keystore_base64.txt > app/release.jks
 
-      - name: Build Release APK (unsigned)
-        if: startsWith(github.ref, 'refs/tags/')
-        run: ./gradlew assembleRelease
+      # 2. आपकी Key और पासवर्ड का इस्तेमाल करके Release APK बनाना
+      - name: Build Release APK
+        run: |
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/app/release.jks \
+            -Pandroid.injected.signing.store.password=123456 \
+            -Pandroid.injected.signing.key.alias=key0 \
+            -Pandroid.injected.signing.key.password=123456
 
-      - name: Upload Debug APK
+      # 3. APK को डाउनलोड के लिए अपलोड करना
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: bunnylock-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: bunnylock-release-signed
+          path: app/build/outputs/apk/release/app-release.apk

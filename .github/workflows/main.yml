@@ -10,7 +10,6 @@ on:
 
 jobs:
   build:
-    # Ubuntu 26.04 की चेतावनी से बचने के लिए इसे 24.04 पर फिक्स किया गया है
     runs-on: ubuntu-24.04 
     steps:
       - name: Checkout code
@@ -24,8 +23,11 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Google ने पुराने 'tools' पैकेज को हटा दिया है, इसलिए डिफ़ॉल्ट इंस्टॉलेशन को अक्षम करें
+          packages: '' 
 
-      # सभी Android SDK लाइसेंस को स्वतः स्वीकार करने के लिए यह स्टेप जोड़ा गया है
+      # सभी Android SDK लाइसेंस को स्वतः स्वीकार करने के लिए
       - name: Accept Android SDK licenses
         run: |
           yes | sdkmanager --licenses || true
